@@ -41,6 +41,18 @@ jobs:
             "private": false
           }'
 
+      - name: Wait for repo availability
+        run: |
+          for i in {1..5}; do
+            curl -s -o /dev/null -w "%{http_code}" https://github.com/team-argo/${{ github.event.inputs.project_name }}
+            if [ $? -eq 200 ]; then
+              echo "Repo is available!"
+              break
+            fi
+            echo "Repo not ready yet, retrying..."
+            sleep 5
+          done
+
       - name: Clone New Repo
         run: |
           git config --global user.name "github-actions"
