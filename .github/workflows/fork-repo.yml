@@ -1,0 +1,63 @@
+name: Create New Repo from Template
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        required: true
+        description: "Project name for repo creation"
+        type: string
+      folder_url:
+        required: true
+        type: string
+      target_repo_name:
+        required: true
+        description: "Template repository name"
+        type: string
+
+jobs:
+  create-repo:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Set Env Variables
+        run: |
+          echo "TEMPLATE_REPO=team-argo/${{ github.event.inputs.target_repo_name }}" >> $GITHUB_ENV
+          echo "NEW_REPO=team-argo/${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
+          echo "FOLDER_URL=${{ github.event.inputs.folder_url }}" >> $GITHUB_ENV
+
+      - name: Print Google Drive folder URL
+        run: |
+          echo "Google Drive folder for $NEW_REPO is: $FOLDER_URL"
+
+      - name: Create New Repository from Template
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/repos/$TEMPLATE_REPO/generate \
+          -d '{
+            "owner": "team-argo",
+            "name": "${{ github.event.inputs.project_name }}",
+            "private": false
+          }'
+
+      - name: Clone New Repo
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git clone https://x-access-token:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/team-argo/${{ github.event.inputs.project_name }}.git
+          cd $(basename $NEW_REPO)
+
+      - name: Overwrite fstab.yaml with Google Drive folder URL
+        run: |
+          cd $(basename $NEW_REPO)
+          echo "mountpoints:" > fstab.yaml
+          echo "  /: $FOLDER_URL" >> fstab.yaml
+          git add fstab.yaml
+          git commit -m "Set up new repo with Google Drive folder"
+          git push origin main
+
+      - name: Output Repository Link
+        run: |
+          echo "New Repository Ready!"
+          echo "Open the new repo here: https://github.com/team-argo/${{ github.event.inputs.project_name }}"
