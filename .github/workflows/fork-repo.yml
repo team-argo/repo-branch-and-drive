@@ -86,6 +86,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/$REPO_NAME | jq -r .id)
           echo "REPO_ID=$REPO_ID" >> $GITHUB_ENV
+          echo "REPO_ID=$REPO_ID"
 
       - name: Install AEM CodeSync on New Repo
         run: |
